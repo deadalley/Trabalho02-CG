@@ -1,0 +1,6 @@
+# Object files and folder
+obj
+obj/*
+
+# Binary
+main

@@ -7,10 +7,13 @@ OBJDIR = obj
 SRC = Point3D.cpp Object.cpp
 OBJ = $(patsubst %.cpp,$(OBJDIR)/%.o,$(SRC))
 
-all: main
+all: $(OBJDIR) main
 
 main: $(OBJ) obj/main.o
 	$(CC) -g $(IFLAGS) $^ -o $@ $(TFLAGS)
+
+$(OBJDIR):
+	mkdir -p $(OBJDIR)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	$(CC) $(CFLAGS) $(IFLAGS) $< -o $@
