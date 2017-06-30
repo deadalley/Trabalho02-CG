@@ -4,3 +4,6 @@ obj/*
 
 # Binary
 main
+
+# OS X files
+.DS_Store
