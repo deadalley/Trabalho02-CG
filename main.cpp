@@ -31,7 +31,7 @@ int winHeight = 600;
 int oldX = 0, oldY = 0;
 double dx, dy;
 bool pressed = false;
-bool input_coordinate = false, rotate_object = false, remove_object = false, move_object = false, light_source = false, object_label = false;
+bool input_coordinate = false, rotate_object = false, remove_object = false, move_object = false, light_source = false, object_label = false, show_axes = true;
 
 GLfloat light_pos[] = {40.0f, 40.0f, 40.0f, 1.0f};
 
@@ -39,7 +39,7 @@ float new_scale;
 ObjectType new_type;
 int selected_obj = 0;
 
-string menu = "C - Add cube\nS - Add sphere\nT - Add teapot\nM - Move object\nR - Rotate object\nX - Remove object\nL - Move light source\n\nF (Flat)\nG (Gouraud)\nP (Phong)";
+string menu = "C - Add cube\nS - Add sphere\nT - Add teapot\nM - Move object\nR - Rotate object\nX - Remove object\nL - Move light source\nH - Show/Hide axes\n\nF (Flat)\nG (Gouraud)\nP (Phong)";
 string label, x_label, y_label, z_label;
 int xyz_label = 0;
 
@@ -199,7 +199,7 @@ void configLight() {
 
 // Initialize OpenGL Graphics
 void initGL() {
-	glClearColor(0.0, 0.0, 0.2, 0.0);
+	glClearColor(0.0, 0.0, 0.0, 0.0);
 
   glShadeModel(GL_SMOOTH);
 	glEnable(GL_COLOR_MATERIAL);
@@ -263,7 +263,8 @@ void display() {
 		drawBitmapText(z_label, coord);
 	}
 
-	showAxes();
+	if (show_axes)
+		showAxes();
 
 	configLight();
 
@@ -272,10 +273,14 @@ void display() {
 
 	vector<Object>::iterator it;
 	for (it = objects.begin(); it < objects.end(); it++) {
-		glColor3f(it->label->color.x, it->label->color.y, it->label->color.z);
-		drawBitmapText(it->label->str, it->label->pos);
+		// glColor3f(it->label->color.x, it->label->color.y, it->label->color.z);
+		// drawBitmapText(it->label->str, it->label->pos);
 
-		glColor3f(0.0, 1.0, 0.0);
+		if (it->isSelected())
+			glColor3f(0.0, 1.0, 0.0);
+		else
+			glColor3f(1.0, 1.0, 0.0);
+
 		glPushMatrix();
 		glTranslatef(it->position.x, it->position.y, it->position.z);
 		rotateObject(it->rotation);
@@ -468,6 +473,27 @@ void keyPressEvent (unsigned char key, int x, int y) {
 		}
 	}
 
+	else if (move_object) {
+		switch (key) {
+			case 'q': case 'Q':
+				label = menu;
+				move_object = false;
+				objects.at(selected_obj).select(false);
+				break;
+			case 32: // Space
+				objects.at(selected_obj).select(false);
+				selected_obj++;
+				if (selected_obj >= objects.size())
+					selected_obj = 0;
+				objects.at(selected_obj).select(true);
+				break;
+			case 13: // Enter
+				label = "Moving object (Q to quit)";
+				input_coordinate = true;
+				break;
+		}
+	}
+
 	else {
 		switch (key) {
 			case 'c': case 'C':
@@ -496,22 +522,21 @@ void keyPressEvent (unsigned char key, int x, int y) {
 					break;
 				label = "Rotating object (Q to quit)\nSPACE - Choose object";
 				rotate_object = true;
-				objects.at(0).select(true);
+				objects.at(selected_obj).select(true);
 				break;
 			case 'm': case 'M':
 				if (objects.size() == 0)
 					break;
 				label = "Moving object (Q to quit)\nSPACE - Choose object";
 				move_object = true;
-				input_coordinate = true;
-				objects.at(0).select(true);
+				objects.at(selected_obj).select(true);
 				break;
 			case 'x': case 'X':
 				if (objects.size() == 0)
 					break;
 				label = "Removing object (Q to quit)\nSPACE - Choose object\nENTER - Remove object";
 				remove_object = true;
-				objects.at(0).select(true);
+				objects.at(selected_obj).select(true);
 				break;
 			case 'l': case 'L':
 				label = "Moving light source (Q to quit)";
@@ -525,23 +550,26 @@ void keyPressEvent (unsigned char key, int x, int y) {
 	  		cout << "Shader changed to FLAT" << endl;
 	  		break;
       case 'g': case 'G':
-          shader->disable();
-          glShadeModel(GL_SMOOTH);
-          glEnable(GL_DEPTH_TEST);
-          cout << "Shader changed to GOURAUD" << endl;
-          break;
+        shader->disable();
+        glShadeModel(GL_SMOOTH);
+        glEnable(GL_DEPTH_TEST);
+        cout << "Shader changed to GOURAUD" << endl;
+        break;
       case 'p': case 'P':
-          shader = SM.loadfromFile("shaders/phong_vertexshader.txt","shaders/phong_fragmentshader.txt"); // load (and compile, link) from file
-          if (shader == 0){
-             cout << "Error Loading, compiling or linking PHONG shader\n";
-             shader->disable();
-          }
-          else {
-             ProgramObject = shader->GetProgramObject();
-          }
-          shader->enable();
-          cout << "Shader changed to PHONG" << endl;
-          break;
+        shader = SM.loadfromFile("shaders/phong_vertexshader.txt","shaders/phong_fragmentshader.txt"); // load (and compile, link) from file
+        if (shader == 0){
+           cout << "Error Loading, compiling or linking PHONG shader\n";
+           shader->disable();
+        }
+        else {
+           ProgramObject = shader->GetProgramObject();
+        }
+        shader->enable();
+        cout << "Shader changed to PHONG" << endl;
+        break;
+			case 'h': case 'H':
+				show_axes = !show_axes;
+				break;
 			case 27:
 				exit(0);
 		}

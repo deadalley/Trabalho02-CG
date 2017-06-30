@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -c -g
+CFLAGS = -c -g -w
 IFLAGS = -Iinclude
 TFLAGS = -lGL -lGLU -lGLEW -lglut -std=c++11
 SRCDIR = src
@@ -28,5 +28,4 @@ val:
 	valgrind --track-origins=yes ./main
 
 run:
-	main
-	@./main
+	./main

@@ -13,33 +13,33 @@ enum ObjectType {
 };
 
 class Object {
-	class Label {
-	public:
-		std::string str;
-		Point3D pos;
-		Point3D color;
-
-		Label(Point3D pos, std::string str) {
-			this->str = str;
-
-			this->pos.x = pos.x + 0.0;
-			this->pos.y = pos.y + 10.0;
-			this->pos.z = pos.z + 0.0;
-
-			this->color.x = this->color.y = this->color.z = 1.0;
-		}
-
-		void setPosition(Point3D pos) {
-			this->pos.x = pos.x + 0.0;
-			this->pos.y = pos.y + 10.0;
-			this->pos.z = pos.z + 0.0;
-		}
-	};
+	// class Label {
+	// public:
+	// 	std::string str;
+	// 	Point3D pos;
+	// 	Point3D color;
+	//
+	// 	Label(Point3D pos, std::string str) {
+	// 		this->str = str;
+	//
+	// 		this->pos.x = pos.x + 0.0;
+	// 		this->pos.y = pos.y + 10.0;
+	// 		this->pos.z = pos.z + 0.0;
+	//
+	// 		this->color.x = this->color.y = this->color.z = 1.0;
+	// 	}
+	//
+	// 	void setPosition(Point3D pos) {
+	// 		this->pos.x = pos.x + 0.0;
+	// 		this->pos.y = pos.y + 10.0;
+	// 		this->pos.z = pos.z + 0.0;
+	// 	}
+	// };
 
 	bool selected;
 
 public:
-	Label *label;
+	// Label *label;
 	Point3D position;
 	float scale;
 	ObjectType type;
