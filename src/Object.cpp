@@ -11,6 +11,10 @@ Object::Object(Point3D pos, float scale, ObjectType type, std::string lab) {
 
   this->selected = false;
 
+  this->rotation.x = 0;
+  this->rotation.y = 0;
+  this->rotation.z = 0;
+
   label = new Label(pos, lab);
   //std::cout << label->str << std::endl;
 }
@@ -32,4 +36,9 @@ void Object::select(bool s) {
 
 bool Object::isSelected() {
   return selected;
+}
+
+void Object::setPosition(Point3D pos){
+  this->position = pos;
+  this->label->setPosition(pos);
 }

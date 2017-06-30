@@ -1,10 +1,10 @@
 CC = g++
 CFLAGS = -c -g
 IFLAGS = -Iinclude
-TFLAGS = -lGL -lGLU -lglut -std=c++11
+TFLAGS = -lGL -lGLU -lGLEW -lglut -std=c++11
 SRCDIR = src
 OBJDIR = obj
-SRC = Point3D.cpp Object.cpp
+SRC = Point3D.cpp Object.cpp glsl.cpp
 OBJ = $(patsubst %.cpp,$(OBJDIR)/%.o,$(SRC))
 
 all: $(OBJDIR) main

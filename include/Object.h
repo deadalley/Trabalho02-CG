@@ -8,8 +8,8 @@
 
 enum ObjectType {
 	Cube,
-	LightSource,
-	Teapot
+	Teapot,
+	Sphere
 };
 
 class Object {
@@ -28,6 +28,12 @@ class Object {
 
 			this->color.x = this->color.y = this->color.z = 1.0;
 		}
+
+		void setPosition(Point3D pos) {
+			this->pos.x = pos.x + 0.0;
+			this->pos.y = pos.y + 10.0;
+			this->pos.z = pos.z + 0.0;
+		}
 	};
 
 	bool selected;
@@ -37,10 +43,12 @@ public:
 	Point3D position;
 	float scale;
 	ObjectType type;
+	Point3D rotation;
 
 	Object(Point3D pos, float scale, ObjectType type, std::string lab);
 	void select(bool s);
 	bool isSelected();
+	void setPosition(Point3D pos);
 };
 
 #endif

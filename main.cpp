@@ -3,28 +3,27 @@
 #include <math.h>
 #include <iostream>
 #include <string>
+#include <string.h>
 #include <vector>
+#include <time.h>
+
+#include <GL/glew.h>
+#include <GL/freeglut.h>
+#include "glsl.h"
 
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/glut.h>
-#include <GL/freeglut.h>
 
 #include "Point3D.h"
 #include "Object.h"
 
 using namespace std;
+using namespace cwc;
 
-Point3D a(0.0, 0.0, 0.0),
-b(0.0, 1.0, 0.0),
-c(1.0, 1.0, 0.0),
-d(1.0, 0.0, 0.0),
-e(0.0, 0.0, 1.0),
-f(0.0, 1.0, 1.0),
-g(1.0, 1.0, 1.0),
-h(1.0, 0.0, 1.0);
-
-Point3D obj_coordinates;
+glShaderManager SM;
+glShader *shader;
+GLuint ProgramObject;
 
 int winWidth = 800;
 int winHeight = 600;
@@ -32,20 +31,42 @@ int winHeight = 600;
 int oldX = 0, oldY = 0;
 double dx, dy;
 bool pressed = false;
-bool input_coordinate = false, transform_object = false;
-float rotation_x = 0;
-float rotation_y = 0;
-float rotation_z = 0;
+bool input_coordinate = false, rotate_object = false, remove_object = false, move_object = false, light_source = false, object_label = false;
+
+GLfloat light_pos[] = {40.0f, 40.0f, 40.0f, 1.0f};
 
 float new_scale;
 ObjectType new_type;
 int selected_obj = 0;
 
-string menu = "C - Add cube\nL - Add light source\nT - Add teapot\nM - Move object\nS - Scale object\nR - Rotate object";
+string menu = "C - Add cube\nS - Add sphere\nT - Add teapot\nM - Move object\nR - Rotate object\nX - Remove object\nL - Move light source\n\nF (Flat)\nG (Gouraud)\nP (Phong)";
 string label, x_label, y_label, z_label;
 int xyz_label = 0;
 
 vector<Object> objects;
+
+void rotateObject(Point3D rotation) {
+	// Handling mouse rotation
+	if (rotation.x > 359)
+		rotation.x -= 360;
+	else if(rotation.x < 0)
+		rotation.x += 360;
+
+	if (rotation.y > 359)
+		rotation.y -= 360;
+	else if(rotation.y < 0)
+		rotation.y += 360;
+
+	if (rotation.z > 359)
+		rotation.z -= 360;
+	else if(rotation.z < 0)
+		rotation.z += 360;
+
+	glRotatef(rotation.x, 1.0, 0.0, 0.0);
+	glRotatef(rotation.y, 0.0, 1.0, 0.0);
+	glRotatef(rotation.z, 0.0, 0.0, 1.0);
+	glRotatef(90, 1.0, 0.0, 0.0);
+}
 
 void showAxes() {
 	// Red X
@@ -108,91 +129,7 @@ void drawBitmapText(string string, Point3D pos) {
 	*/
 }
 
-void drawCube(Point3D pos, float scale, bool colored, bool rotate) {
-	glColor3f(1.0, 1.0, 1.0);
-	glPushMatrix();
-	glTranslatef(pos.x, pos.y, pos.z);
-	if (rotate) {
-		// Handling mouse rotation
-		if (rotation_x > 359)
-			rotation_x -= 360;
-		else if(rotation_x < 0)
-			rotation_x += 360;
-
-		if (rotation_y > 359)
-			rotation_y -= 360;
-		else if(rotation_y < 0)
-			rotation_y += 360;
-
-		if (rotation_z > 359)
-			rotation_z -= 360;
-		else if(rotation_z < 0)
-			rotation_z += 360;
-
-		glRotatef(rotation_x, 1.0, 0.0, 0.0);
-		glRotatef(rotation_y, 0.0, 1.0, 0.0);
-		glRotatef(rotation_z, 0.0, 0.0, 1.0);
-		glRotatef(90, 1.0, 0.0, 0.0);
-	}
-
-	glScalef(scale, scale, scale);
-	glTranslatef(-0.5, -0.5, -0.5);
-	glBegin(GL_QUADS);
-		// Top face (y = 1.0f)
-		// Define vertices in counter-clockwise (CCW) order with normal pointing out
-		if (colored)
-			glColor3f(1.0, 0.0, 0.0);
-		glVertex3f(a.x, a.y, a.z);
-		glVertex3f(b.x, b.y, b.z);
-		glVertex3f(c.x, c.y, c.z);
-		glVertex3f(d.x, d.y, d.z);
-
-		if (colored)
-			glColor3f(0.0, 1.0, 0.0);
-		glVertex3f(a.x, a.y, a.z);
-		glVertex3f(d.x, d.y, d.z);
-		glVertex3f(h.x, h.y, h.z);
-		glVertex3f(e.x, e.y, e.z);
-
-		if (colored)
-			glColor3f(0.0, 0.0, 1.0);
-		glVertex3f(a.x, a.y, a.z);
-		glVertex3f(e.x, e.y, e.z);
-		glVertex3f(f.x, f.y, f.z);
-		glVertex3f(b.x, b.y, b.z);
-
-		if (colored)
-			glColor3f(1.0, 1.0, 0.0);
-		glVertex3f(c.x, c.y, c.z);
-		glVertex3f(g.x, g.y, g.z);
-		glVertex3f(h.x, h.y, h.z);
-		glVertex3f(d.x, d.y, d.z);
-
-		if (colored)
-			glColor3f(1.0, 0.0, 1.0);
-		glVertex3f(c.x, c.y, c.z);
-		glVertex3f(b.x, b.y, b.z);
-		glVertex3f(f.x, f.y, f.z);
-		glVertex3f(g.x, g.y, g.z);
-
-		if (colored)
-			glColor3f(0.0, 1.0, 1.0);
-		glVertex3f(e.x, e.y, e.z);
-		glVertex3f(h.x, h.y, h.z);
-		glVertex3f(g.x, g.y, g.z);
-		glVertex3f(f.x, f.y, f.z);
-	glEnd();
-	glPopMatrix();
-}
-
-void drawTeapot(Point3D pos, float scale) {
-	glColor3f(1.0, 1.0, 1.0);
-	glTranslatef(pos.x, pos.y, pos.z);
-	glutSolidTeapot(scale);
-}
-
 void labelToObject() {
-	string *local_label;
 	Point3D pos;
 
 	pos.x = stof(x_label.substr(3, x_label.length()));
@@ -207,16 +144,82 @@ void labelToObject() {
 	//cout << "Size: " << objects.size() << endl;
 }
 
+void configLight() {
+   glEnable(GL_LIGHTING);
+   glEnable(GL_LIGHT0);
+   glEnable(GL_NORMALIZE);
+
+   // Light model parameters:
+   GLfloat lmKa[] = {0.0, 0.0, 0.0, 0.0 };
+   glLightModelfv(GL_LIGHT_MODEL_AMBIENT, lmKa);
+
+   glLightModelf(GL_LIGHT_MODEL_LOCAL_VIEWER, 1.0);
+   glLightModelf(GL_LIGHT_MODEL_TWO_SIDE, 0.0);
+
+   // Spotlight Attenuation
+   GLfloat spot_direction[] = {1.0, -1.0, -1.0 };
+   GLint spot_exponent = 30;
+   GLint spot_cutoff = 180;
+
+   glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, spot_direction);
+   glLighti(GL_LIGHT0, GL_SPOT_EXPONENT, spot_exponent);
+   glLighti(GL_LIGHT0, GL_SPOT_CUTOFF, spot_cutoff);
+
+   GLfloat Kc = 1.0;
+   GLfloat Kl = 0.0;
+   GLfloat Kq = 0.0;
+
+   glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION,Kc);
+   glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, Kl);
+   glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, Kq);
+
+   // Lighting parameters:
+   GLfloat light_Ka[]  = {1.0f, 0.5f, 0.5f, 1.0f};
+   GLfloat light_Kd[]  = {1.0f, 0.1f, 0.1f, 1.0f};
+   GLfloat light_Ks[]  = {1.0f, 1.0f, 1.0f, 1.0f};
+
+   glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
+   glLightfv(GL_LIGHT0, GL_AMBIENT, light_Ka);
+   glLightfv(GL_LIGHT0, GL_DIFFUSE, light_Kd);
+   glLightfv(GL_LIGHT0, GL_SPECULAR, light_Ks);
+
+   // Material parameters:
+   GLfloat material_Ka[] = {0.5f, 0.0f, 0.0f, 1.0f};
+   GLfloat material_Kd[] = {0.4f, 0.4f, 0.5f, 1.0f};
+   GLfloat material_Ks[] = {0.8f, 0.8f, 0.0f, 1.0f};
+   GLfloat material_Ke[] = {0.1f, 0.0f, 0.0f, 0.0f};
+   GLfloat material_Se = 20.0f;
+
+   glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, material_Ka);
+   glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, material_Kd);
+   glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, material_Ks);
+   glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, material_Ke);
+   glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, material_Se);
+ }
+
 // Initialize OpenGL Graphics
 void initGL() {
 	glClearColor(0.0, 0.0, 0.2, 0.0);
+
+  glShadeModel(GL_SMOOTH);
+	glEnable(GL_COLOR_MATERIAL);
+
+	shader = SM.loadfromFile("shaders/phong_vertexshader.txt","shaders/phong_fragmentshader.txt"); // load (and compile, link) from file
+	if(shader == 0) {
+		cout << "Error loading, compiling or linking INITIAL shader" << endl;
+	}
+  else {
+		ProgramObject = shader->GetProgramObject();
+  }
+  shader->begin();
+  configLight();
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	//gluPerspective(45.0, (GLfloat)winWidth/(GLfloat)winHeight, 1.0, 100.0);
 	gluPerspective(45.0, (GLfloat)winWidth/(GLfloat)winHeight, 0.1, 500.0);
 
-	glEnable(GL_DEPTH_TEST);   						// Enable depth testing for z-culling
+	glEnable(GL_DEPTH_TEST);
 
 	glPolygonMode(GL_FRONT, GL_FILL);
 }
@@ -232,11 +235,15 @@ void display() {
 
 	// Especifica sistema de coordenadas do modelo
 	glMatrixMode(GL_MODELVIEW);
+
+	glClear(GL_COLOR_BUFFER_BIT);
 	// Inicializa sistema de coordenadas do modelo
 	glLoadIdentity();
 
 	// Especifica posição do observador e do alvo
 	gluLookAt(0, 80, 200, 0, 0, 0, 0, 1, 0);
+
+
 
 	Point3D coord(-100.0, 0.0, 0.0);
 	glColor3f(1.0f, 1.0f, 1.0f);
@@ -256,45 +263,36 @@ void display() {
 		drawBitmapText(z_label, coord);
 	}
 
-
-	vector<Object>::iterator it;
-	for (it = objects.begin(); it < objects.end(); it++) {
-		glColor3f(it->label->color.x, it->label->color.y, it->label->color.z);
-		drawBitmapText(it->label->str, it->label->pos);
-
-		if (it->type == Cube)
-			drawCube(it->position, it->scale, true, transform_object && it->isSelected());
-		if (it->type == LightSource)
-			drawCube(it->position, it->scale, false, transform_object && it->isSelected());
-		if (it->type == Teapot)
-			drawTeapot(it->position, it->scale);
-
-	}
-
 	showAxes();
-/*
-	Point3D random_cube(1.0, 1.0, 1.0);
-	drawCube(random_cube, 10.0, true);
 
-	Point3D random_cube2(1.0, 2.0, 1.0);
-	drawCube(random_cube2, 1.0, true);
+	configLight();
 
-	Point3D light_source(5.0, 5.0, 5.0);
-	drawCube(light_source, 0.25, false);
+  if (shader)
+		shader->begin();
 
 	vector<Object>::iterator it;
 	for (it = objects.begin(); it < objects.end(); it++) {
 		glColor3f(it->label->color.x, it->label->color.y, it->label->color.z);
 		drawBitmapText(it->label->str, it->label->pos);
 
+		glColor3f(0.0, 1.0, 0.0);
+		glPushMatrix();
+		glTranslatef(it->position.x, it->position.y, it->position.z);
+		rotateObject(it->rotation);
+
 		if (it->type == Cube)
-			drawCube(it->position, it->scale, true);
-		if (it->type == LightSource)
-			drawCube(it->position, it->scale, false);
+			glutSolidCube(it->scale);
 		if (it->type == Teapot)
-			drawTeapot(it->position, it->scale);
+			glutSolidTeapot(it->scale);
+		if (it->type == Sphere)
+			glutSolidSphere(it->scale, 50.0, 50.0);
+
+		glPopMatrix();
 	}
-*/
+
+	if (shader)
+		shader->end();
+
 	glutSwapBuffers();  // Swap the front and back frame buffers (double buffering)
 }
 
@@ -323,9 +321,10 @@ void mouseMovementEvent(int x, int y){
 
 		oldX = x;
 		oldY = y;
-
-		rotation_x += dy;
-		rotation_y += dx;
+		if (rotate_object) {
+			objects.at(selected_obj).rotation.x += dy;
+			objects.at(selected_obj).rotation.y += dx;
+		}
 
 		glutPostRedisplay();
 	}
@@ -367,8 +366,11 @@ void keyPressEvent (unsigned char key, int x, int y) {
 				local_label->append("-");
 				break;
 			case 'q': case 'Q':
-				label = "C - Add cube\nL - Add light source";
+				label = menu;
 				input_coordinate = false;
+				object_label = false;
+				light_source = false;
+				move_object = false;
 				break;
 			case 13: // Enter
 				xyz_label++;
@@ -377,26 +379,56 @@ void keyPressEvent (unsigned char key, int x, int y) {
 					xyz_label = 0;
 					input_coordinate = false;
 					label = menu;
-					labelToObject();
+					if (object_label) {
+						labelToObject();
+						object_label = false;
+					}
+
+					if (light_source) {
+						light_pos[0] = stof(x_label.substr(3, x_label.length()));
+						light_pos[1] = stof(y_label.substr(3, y_label.length()));
+						light_pos[2] = stof(z_label.substr(3, z_label.length()));
+						light_source = false;
+					}
+
+					if (move_object) {
+						Point3D pos;
+
+						pos.x = stof(x_label.substr(3, x_label.length()));
+						pos.y = stof(y_label.substr(3, y_label.length()));
+						pos.z = stof(z_label.substr(3, z_label.length()));
+
+						objects.at(selected_obj).setPosition(pos);
+						move_object = false;
+					}
+
 					x_label = "X: ";
 					y_label = "Y: ";
 					z_label = "Z: ";
 				}
 				break;
 			case 8: // Backspace
-				//if (coordinate_label)
 				local_label->pop_back();
+				break;
+			case 32: // Space
+				if (move_object) {
+					objects.at(selected_obj).select(false);
+					selected_obj++;
+					if (selected_obj >= objects.size())
+						selected_obj = 0;
+					objects.at(selected_obj).select(true);
+				}
 				break;
 			case 27: // Escape
 				exit(0);
 		}
 	}
 
-	else if (transform_object) {
+	else if (rotate_object) {
 		switch (key) {
 			case 'q': case 'Q':
 				label = menu;
-				transform_object = false;
+				rotate_object = false;
 				objects.at(selected_obj).select(false);
 				break;
 			case 32: // Space
@@ -411,31 +443,105 @@ void keyPressEvent (unsigned char key, int x, int y) {
 		}
 	}
 
+	else if (remove_object) {
+		switch (key) {
+			case 'q': case 'Q':
+				label = menu;
+				remove_object = false;
+				if (objects.size() > 0)
+					objects.at(selected_obj).select(false);
+				break;
+			case 32: // Space
+				objects.at(selected_obj).select(false);
+				selected_obj++;
+				if (selected_obj >= objects.size())
+					selected_obj = 0;
+				objects.at(selected_obj).select(true);
+				break;
+			case 13: // Enter
+				objects.erase(objects.begin() + selected_obj);
+				if (selected_obj >= objects.size())
+					selected_obj = 0;
+				if (objects.size() > 0)
+					objects.at(selected_obj).select(true);
+				break;
+		}
+	}
+
 	else {
 		switch (key) {
 			case 'c': case 'C':
 				label = "Adding a cube (Q to quit)";
 				new_type = Cube;
-				new_scale = 10.0;
+				new_scale = 20.0;
 				input_coordinate = true;
+				object_label = true;
 				break;
-			case 'l': case 'L':
-				label = "Adding a light source (Q to quit)";
-				new_type = LightSource;
-				new_scale = 1.0;
+			case 's': case 'S':
+				label = "Adding a sphere (Q to quit)";
+				new_type = Sphere;
+				new_scale = 14.0;
 				input_coordinate = true;
+				object_label = true;
 				break;
 			case 't': case 'T':
 				label = "Adding a teapot (Q to quit)";
 				new_type = Teapot;
-				new_scale = 8.0;
+				new_scale = 24.0;
 				input_coordinate = true;
+				object_label = true;
 				break;
 			case 'r': case 'R':
+				if (objects.size() == 0)
+					break;
 				label = "Rotating object (Q to quit)\nSPACE - Choose object";
-				transform_object = true;
+				rotate_object = true;
 				objects.at(0).select(true);
 				break;
+			case 'm': case 'M':
+				if (objects.size() == 0)
+					break;
+				label = "Moving object (Q to quit)\nSPACE - Choose object";
+				move_object = true;
+				input_coordinate = true;
+				objects.at(0).select(true);
+				break;
+			case 'x': case 'X':
+				if (objects.size() == 0)
+					break;
+				label = "Removing object (Q to quit)\nSPACE - Choose object\nENTER - Remove object";
+				remove_object = true;
+				objects.at(0).select(true);
+				break;
+			case 'l': case 'L':
+				label = "Moving light source (Q to quit)";
+				input_coordinate = true;
+				light_source = true;
+				break;
+			case 'f': case 'F':
+	  		shader->disable();
+	  		glShadeModel(GL_FLAT);
+	  		glEnable(GL_DEPTH_TEST);
+	  		cout << "Shader changed to FLAT" << endl;
+	  		break;
+      case 'g': case 'G':
+          shader->disable();
+          glShadeModel(GL_SMOOTH);
+          glEnable(GL_DEPTH_TEST);
+          cout << "Shader changed to GOURAUD" << endl;
+          break;
+      case 'p': case 'P':
+          shader = SM.loadfromFile("shaders/phong_vertexshader.txt","shaders/phong_fragmentshader.txt"); // load (and compile, link) from file
+          if (shader == 0){
+             cout << "Error Loading, compiling or linking PHONG shader\n";
+             shader->disable();
+          }
+          else {
+             ProgramObject = shader->GetProgramObject();
+          }
+          shader->enable();
+          cout << "Shader changed to PHONG" << endl;
+          break;
 			case 27:
 				exit(0);
 		}
@@ -456,7 +562,7 @@ int main(int argc, char** argv) {
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_DEPTH); 	// Enable double buffered mode
 	glutInitWindowSize(800, 600);   		// Set the window's initial width & height
 	glutInitWindowPosition(100, 100); 	// Position the window's initial top-left corner
-	glutCreateWindow("Oh no");         	// Create window with the given title
+	glutCreateWindow("Trabalho 2 CG"); 	// Create window with the given title
 
 	glutDisplayFunc(display);       		// Register callback handler for window re-paint event
 	glutReshapeFunc(reshape);       		// Register callback handler for window re-size event
